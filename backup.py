@@ -35,6 +35,7 @@ class S3Backups(object):
     backups = self.backups()
     if len(backups):
       return self.backups()[0]
+    return None
 
   def backup(self, file_path, backup_name):
     k = Key(self.__b)
@@ -107,6 +108,7 @@ def create(ctx, tar_opts, exclude_vcs, exclude_archive, exclude_target, exclude_
 
   command.append('.')
 
+  print("Executing %s" % ' '.join(command))
   try:
     call(command)
   except CalledProcessError, err:
@@ -179,8 +181,15 @@ def prune(ctx, keep):
 @click.option('--tar-opts', type=click.STRING, default='xvzf')
 def restore(ctx, backup_id, tar_opts):
   """Restore a backup from a given id"""
-  print("Restoring %s from %s/%s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], backup_id))
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
+  if backup_id == 'latest':
+    backup_id = s3.latest()
+    if backup_id is None:
+      print("No backups found.")
+      return
+
+  print("Restoring %s from %s/%s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], backup_id))
+
   s3.restore(backup_id, ctx.obj['TMP'])
 
   if ctx.obj['DRY_RUN']:
@@ -188,6 +197,7 @@ def restore(ctx, backup_id, tar_opts):
   else:
     command = [ctx.obj['TAR'], tar_opts, ctx.obj['TMP'], '-C', ctx.obj['JENKINS_HOME']]
 
+    print("Executing %s" % ' '.join(command))
     try:
       call(command)
     except CalledProcessError, err:
