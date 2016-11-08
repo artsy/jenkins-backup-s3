@@ -86,7 +86,7 @@ def create(ctx, tar_opts, exclude_vcs, exclude_archive, exclude_target, exclude_
   """Create a backup"""
   print("Backing up %s to %s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
 
-  command = [ctx.obj['TAR'], tar_opts, ctx.obj['TMP']]
+  command = [ctx.obj['TAR'], tar_opts, ctx.obj['TMP'], '-C', ctx.obj['JENKINS_HOME']]
 
   if exclude_vcs:
     command.append('--exclude-vcs')
@@ -105,7 +105,7 @@ def create(ctx, tar_opts, exclude_vcs, exclude_archive, exclude_target, exclude_
   for e in exclude:
     command.append("--exclude=%s" % e)
 
-  command.append(ctx.obj['JENKINS_HOME'])
+  command.append('.')
 
   try:
     call(command)
@@ -176,10 +176,10 @@ def prune(ctx, keep):
 @cli.command()
 @click.pass_context
 @click.argument('backup-id', required=True, type=click.STRING)
-@click.option('--tar-opts', type=click.STRING, default='xzf')
+@click.option('--tar-opts', type=click.STRING, default='xvzf')
 def restore(ctx, backup_id, tar_opts):
   """Restore a backup from a given id"""
-  print("Restoring %s from %s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
+  print("Restoring %s from %s/%s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], backup_id))
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   s3.restore(backup_id, ctx.obj['TMP'])
 
