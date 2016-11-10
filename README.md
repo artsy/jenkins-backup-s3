@@ -26,7 +26,21 @@ Configure boto with these IAM credentials.  See: http://boto.cloudhackers.com/en
 
 `python backup.py {OPTIONS} {SUBCOMMAND} {SUBCOMMAND_OPTIONS}`
 
-The only required option is your S3 bucket: `--bucket={BUCKET_NAME}`
+Options can be set via either a switch or environment variable.
+
+The only required option is your S3 bucket:
+  - `python backup.py --bucket={BUCKET_NAME}`
+  - `JENKINS_BACKUP_BUCKET={BUCKET_NAME} python backup.py`
+
+Other available options are:
+
+Bucket prefix (defaults to "jenkins-backups"):
+  - `python backup.py --bucket-prefix={BUCKET_PREFIX}`
+  - `JENKINS_BACKUP_BUCKET_PREFIX={BUCKET_PREFIX} python backup.py`
+
+Bucket region (defaults to "us-east-1"):
+  - `python backup.py --bucket-region={BUCKET_REGION}`
+  - `JENKINS_BACKUP_BUCKET_REGION={BUCKET_REGION} python backup.py`
 
 Available subcommands:
   - `create`
@@ -35,7 +49,7 @@ Available subcommands:
   - `delete`
   - `prune`
 
-See `python backup.py --help`
+Run `python backup.py {SUBCOMMAND} --help` for subcommand-specific options.
 
 ## Running a daily backup on Jenkins
 
@@ -44,5 +58,3 @@ Create a new item in Jenkins and configure a build of this repository.
 Set the Shell builder to run `python backup.py --bucket={BUCKET_NAME} create`.
 
 Set the build on a daily CRON schedule.
-
-That's it!

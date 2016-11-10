@@ -55,25 +55,20 @@ class S3Backups(object):
 
 @click.group()
 @click.pass_context
-@click.option('--bucket', required=True, type=click.STRING)
-@click.option('--bucket-prefix', type=click.STRING, default='backups')
-@click.option('--bucket-region', type=click.STRING, default='us-east-1')
-@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins')
-@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz')
-@click.option('--tar', type=click.STRING, default='/bin/tar')
-@click.option('--dry-run', type=click.BOOL, is_flag=True)
-def cli(ctx, bucket, bucket_prefix, bucket_region, jenkins_home, tmp, tar, dry_run):
+@click.option('--bucket', required=True, type=click.STRING, envvar='JENKINS_BACKUP_BUCKET')
+@click.option('--bucket-prefix', type=click.STRING, default='jenkins-backups', envvar='JENKINS_BACKUP_BUCKET_PREFIX')
+@click.option('--bucket-region', type=click.STRING, default='us-east-1', envvar='JENKINS_BACKUP_BUCKET_REGION')
+def cli(ctx, bucket, bucket_prefix, bucket_region):
     """Manage Jenkins backups to S3"""
     ctx.obj['BUCKET'] = bucket
     ctx.obj['BUCKET_PREFIX'] = bucket_prefix
     ctx.obj['BUCKET_REGION'] = bucket_region
-    ctx.obj['JENKINS_HOME'] = jenkins_home
-    ctx.obj['TMP'] = tmp
-    ctx.obj['TAR'] = tar
-    ctx.obj['DRY_RUN'] = dry_run
 
 @cli.command()
 @click.pass_context
+@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins')
+@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz')
+@click.option('--tar', type=click.STRING, default='/bin/tar')
 @click.option('--tar-opts', type=click.STRING, default='cvfz')
 @click.option('--exclude-vcs/--include-vcs', default=True)
 @click.option('--exclude-archive/--include-archive', default=True)
@@ -83,11 +78,13 @@ def cli(ctx, bucket, bucket_prefix, bucket_region, jenkins_home, tmp, tar, dry_r
 @click.option('--exclude-maven/--include-maven', default=True)
 @click.option('--exclude-logs/--include-logs', default=True)
 @click.option('--exclude', '-e', type=click.STRING, multiple=True)
-def create(ctx, tar_opts, exclude_vcs, exclude_archive, exclude_target, exclude_builds, exclude_workspace, exclude_maven, exclude_logs, exclude):
+@click.option('--dry-run', type=click.BOOL, is_flag=True)
+def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, exclude_target,
+            exclude_builds, exclude_workspace, exclude_maven, exclude_logs, exclude, dry_run):
   """Create a backup"""
-  print("Backing up %s to %s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
+  print("Backing up %s to %s/%s..." % (jenkins_home, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
 
-  command = [ctx.obj['TAR'], tar_opts, ctx.obj['TMP'], '-C', ctx.obj['JENKINS_HOME']]
+  command = [tar, tar_opts, tmp, '-C', jenkins_home]
 
   if exclude_vcs:
     command.append('--exclude-vcs')
@@ -113,17 +110,17 @@ def create(ctx, tar_opts, exclude_vcs, exclude_archive, exclude_target, exclude_
     call(command)
   except CalledProcessError, err:
     print("Creating tar archive failed with error %s" % repr(e))
-    os.remove(ctx.obj['TMP'])
+    os.remove(tmp)
     return
 
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   backup_id = str(datetime.datetime.now()).replace(' ', '_')
 
-  if ctx.obj['DRY_RUN']:
-    print("Would have created backup id %s from %s" % (backup_id, ctx.obj['TMP']))
+  if dry_run:
+    print("Would have created backup id %s from %s" % (backup_id, tmp))
   else:
-    s3.backup(ctx.obj['TMP'], backup_id)
-    os.remove(ctx.obj['TMP'])
+    s3.backup(tmp, backup_id)
+    os.remove(tmp)
     print("Created backup id %s" % backup_id)
 
   print('Done.')
@@ -146,12 +143,13 @@ def list(ctx):
 @cli.command()
 @click.pass_context
 @click.argument('backup-id', required=True, type=click.STRING)
-def delete(ctx, backup_id):
+@click.option('--dry-run', type=click.BOOL, is_flag=True)
+def delete(ctx, backup_id, dry_run):
   """Delete a backup by id"""
   print("Deleting backup %s in %s/%s..." % (backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
 
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
-  if ctx.obj['DRY_RUN']:
+  if dry_run:
     print("Would have deleted %s" % backup_id)
   else:
     s3.delete(backup_id)
@@ -162,12 +160,13 @@ def delete(ctx, backup_id):
 @cli.command()
 @click.pass_context
 @click.argument('keep', required=True, type=click.INT)
-def prune(ctx, keep):
+@click.option('--dry-run', type=click.BOOL, is_flag=True)
+def prune(ctx, keep, dry_run):
   """Delete any backups older than the latest {keep} number of backups"""
   print("Pruning backups in %s/%s..." % (ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   for backup_id in s3.backups()[keep:]:
-    if ctx.obj['DRY_RUN']:
+    if dry_run:
       print("Would have deleted %s" % backup_id)
     else:
       s3.delete(backup_id)
@@ -178,8 +177,12 @@ def prune(ctx, keep):
 @cli.command()
 @click.pass_context
 @click.argument('backup-id', required=True, type=click.STRING)
+@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins')
+@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz')
+@click.option('--tar', type=click.STRING, default='/bin/tar')
 @click.option('--tar-opts', type=click.STRING, default='xvzf')
-def restore(ctx, backup_id, tar_opts):
+@click.option('--dry-run', type=click.BOOL, is_flag=True)
+def restore(ctx, jenkins_home, tmp, tar, backup_id, tar_opts, dry_run):
   """Restore a backup from a given id"""
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   if backup_id == 'latest':
@@ -188,14 +191,14 @@ def restore(ctx, backup_id, tar_opts):
       print("No backups found.")
       return
 
-  print("Restoring %s from %s/%s/%s..." % (ctx.obj['JENKINS_HOME'], ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], backup_id))
+  print("Restoring %s from %s/%s/%s..." % (jenkins_home, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], backup_id))
 
-  s3.restore(backup_id, ctx.obj['TMP'])
+  s3.restore(backup_id, tmp)
 
-  if ctx.obj['DRY_RUN']:
-    print('Would have restored %s from %s' % (ctx.obj['JENKINS_HOME'], ctx.obj['TMP']))
+  if dry_run:
+    print('Would have restored %s from %s' % (jenkins_home, tmp))
   else:
-    command = [ctx.obj['TAR'], tar_opts, ctx.obj['TMP'], '-C', ctx.obj['JENKINS_HOME']]
+    command = [tar, tar_opts, tmp, '-C', jenkins_home]
 
     print("Executing %s" % ' '.join(command))
     try:
@@ -203,7 +206,7 @@ def restore(ctx, backup_id, tar_opts):
     except CalledProcessError, err:
       print("Restoring tar archive failed with error %s" % repr(e))
     finally:
-      os.remove(ctx.obj['TMP'])
+      os.remove(tmp)
 
   print('Done.')
 
