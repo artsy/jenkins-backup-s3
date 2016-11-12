@@ -4,29 +4,34 @@ A collection of scripts to backup Jenkins configuration to S3, as well as manage
 
 ## Setup
 
-### Python (and optionally, virtualenvs)
+### Python
 
 - Install Python 2.7.x
 
-- http://docs.python-guide.org/en/latest/dev/virtualenvs/
+- Optionally: Install [virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
 
 ### Install requirements
 
-`pip install -r requirements.txt`
+- `pip install -r requirements.txt`
 
-### Configure AWS
+### Configure S3 and IAM
 
-Create an S3 bucket to store backups.
+- Create an S3 bucket to store backups.
 
-Create an IAM user.  The IAM user must have the S3:GetObject, CreateObject, DeleteObject and ListBucket permissions for that bucket.
+- Create an IAM user.  The IAM user must have the `GetObject`, `CreateObject`, `DeleteObject` and `ListBucket` S3 permissions for that bucket.
 
-Configure boto with these IAM credentials.  See: http://boto.cloudhackers.com/en/latest/boto_config_tut.html
+- [Configure boto](http://boto.cloudhackers.com/en/latest/boto_config_tut.html) with these IAM credentials.
+
+```
+export AWS_ACCESS_KEY_ID=foo
+export AWS_SECRET_ACCESS_KEY=bar
+```
 
 ## Usage
 
 `python backup.py {OPTIONS} {COMMAND} {COMMAND_OPTIONS}`
 
-Options can be set via either a switch or environment variable.
+Options can be set directly or via and environment variable.
 
 The only required option is your S3 bucket:
   - `python backup.py --bucket={BUCKET_NAME}`
@@ -55,6 +60,6 @@ Run `python backup.py {COMMAND} --help` for command-specific options.
 
 Create a new item in Jenkins and configure a build of this repository.
 
-Set the Shell builder to run `python backup.py --bucket={BUCKET_NAME} create`.
+Set the shell / virtualenv builder (if you have it installed) to run `python backup.py create`.
 
 Set the build on a daily CRON schedule.
