@@ -55,9 +55,9 @@ class S3Backups(object):
 
 @click.group()
 @click.pass_context
-@click.option('--bucket', required=True, type=click.STRING, envvar='JENKINS_BACKUP_BUCKET')
-@click.option('--bucket-prefix', type=click.STRING, default='jenkins-backups', envvar='JENKINS_BACKUP_BUCKET_PREFIX')
-@click.option('--bucket-region', type=click.STRING, default='us-east-1', envvar='JENKINS_BACKUP_BUCKET_REGION')
+@click.option('--bucket', required=True, type=click.STRING, envvar='JENKINS_BACKUP_BUCKET', help='S3 bucket to store backups')
+@click.option('--bucket-prefix', type=click.STRING, default='jenkins-backups', envvar='JENKINS_BACKUP_BUCKET_PREFIX', help='S3 bucket prefix : defaults to "jenkins-backups"')
+@click.option('--bucket-region', type=click.STRING, default='us-east-1', envvar='JENKINS_BACKUP_BUCKET_REGION', help='S3 bucket region : defaults to "us-east-1')
 def cli(ctx, bucket, bucket_prefix, bucket_region):
     """Manage Jenkins backups to S3"""
     ctx.obj['BUCKET'] = bucket
@@ -66,19 +66,19 @@ def cli(ctx, bucket, bucket_prefix, bucket_region):
 
 @cli.command()
 @click.pass_context
-@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins')
-@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz')
-@click.option('--tar', type=click.STRING, default='/bin/tar')
-@click.option('--tar-opts', type=click.STRING, default='cvfz')
-@click.option('--exclude-vcs/--include-vcs', default=True)
-@click.option('--exclude-archive/--include-archive', default=True)
-@click.option('--exclude-target/--include-target', default=True)
-@click.option('--exclude-builds/--include-builds', default=True)
-@click.option('--exclude-workspace/--include-workspace', default=True)
-@click.option('--exclude-maven/--include-maven', default=True)
-@click.option('--exclude-logs/--include-logs', default=True)
-@click.option('--exclude', '-e', type=click.STRING, multiple=True)
-@click.option('--dry-run', type=click.BOOL, is_flag=True)
+@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins', help='Jenkins home directory : defaults to "/var/lib/jenkins"')
+@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz', help='Temporary tar archive file : defaults to "/tmp/jenkins-backup.tar.gz"')
+@click.option('--tar', type=click.STRING, default='/bin/tar', help='tar executable : defaults to "/bin/tar"')
+@click.option('--tar-opts', type=click.STRING, default='cvfz', help='tar options : defaults to "cvfz"')
+@click.option('--exclude-vcs/--include-vcs', default=True, help='Exclude VCS from the backup : defaults to true')
+@click.option('--exclude-archive/--include-archive', default=True, help='Exclude archive directory from the backup : defaults to true')
+@click.option('--exclude-target/--include-target', default=True, help='Exclude target directory from the backup : defaults to true')
+@click.option('--exclude-builds/--include-builds', default=True, help='Exclude job builds directories from the backup : defaults to true')
+@click.option('--exclude-workspace/--include-workspace', default=True, help='Exclude job workspace directories from the backup : defaults to true')
+@click.option('--exclude-maven/--include-maven', default=True, help='Exclude maven repository from the backup : defaults to true')
+@click.option('--exclude-logs/--include-logs', default=True, help='Exclude logs from the backup : defaults to true')
+@click.option('--exclude', '-e', type=click.STRING, multiple=True, help='Additional direcoties to exclude from the backup')
+@click.option('--dry-run', type=click.BOOL, is_flag=True, help='Create tar archive as "tmp" but to do not upload to S3  : defaults to false')
 def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, exclude_target,
             exclude_builds, exclude_workspace, exclude_maven, exclude_logs, exclude, dry_run):
   """Create a backup"""
@@ -143,26 +143,22 @@ def list(ctx):
 @cli.command()
 @click.pass_context
 @click.argument('backup-id', required=True, type=click.STRING)
-@click.option('--dry-run', type=click.BOOL, is_flag=True)
-def delete(ctx, backup_id, dry_run):
-  """Delete a backup by id"""
+def delete(ctx, backup_id):
+  """Delete a backup by {backup-id}"""
   print("Deleting backup %s in %s/%s..." % (backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
 
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
-  if dry_run:
-    print("Would have deleted %s" % backup_id)
-  else:
-    s3.delete(backup_id)
-    print("Deleted %s" % backup_id)
+  s3.delete(backup_id)
+  print("Deleted %s" % backup_id)
 
   print('Done.')
 
 @cli.command()
 @click.pass_context
 @click.argument('keep', required=True, type=click.INT)
-@click.option('--dry-run', type=click.BOOL, is_flag=True)
+@click.option('--dry-run', type=click.BOOL, is_flag=True, help='Print backups marked for deletion but do not delete them')
 def prune(ctx, keep, dry_run):
-  """Delete any backups older than the latest {keep} number of backups"""
+  """Delete old up to {keep} number of backups"""
   print("Pruning backups in %s/%s..." % (ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   for backup_id in s3.backups()[keep:]:
@@ -177,13 +173,13 @@ def prune(ctx, keep, dry_run):
 @cli.command()
 @click.pass_context
 @click.argument('backup-id', required=True, type=click.STRING)
-@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins')
-@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz')
-@click.option('--tar', type=click.STRING, default='/bin/tar')
-@click.option('--tar-opts', type=click.STRING, default='xvzf')
-@click.option('--dry-run', type=click.BOOL, is_flag=True)
+@click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins', help='Jenkins home directory : defaults to "/var/lib/jenkins"')
+@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz', help='Temporary tar archive file : defaults to "/tmp/jenkins-backup.tar.gz"')
+@click.option('--tar', type=click.STRING, default='/bin/tar', help='tar executable : defaults to "/bin/tar"')
+@click.option('--tar-opts', type=click.STRING, default='xvzf', help='tar options : defaults to "xvzf"')
+@click.option('--dry-run', type=click.BOOL, is_flag=True, help='Download tar archive to "tmp" directory but do not decomress it to "jenkins-home"')
 def restore(ctx, jenkins_home, tmp, tar, backup_id, tar_opts, dry_run):
-  """Restore a backup from a given id"""
+  """Restore a backup by {backup-id} or 'latest'"""
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   if backup_id == 'latest':
     backup_id = s3.latest()

@@ -24,7 +24,7 @@ Configure boto with these IAM credentials.  See: http://boto.cloudhackers.com/en
 
 ## Usage
 
-`python backup.py {OPTIONS} {SUBCOMMAND} {SUBCOMMAND_OPTIONS}`
+`python backup.py {OPTIONS} {COMMAND} {COMMAND_OPTIONS}`
 
 Options can be set via either a switch or environment variable.
 
@@ -42,14 +42,14 @@ Bucket region (defaults to "us-east-1"):
   - `python backup.py --bucket-region={BUCKET_REGION}`
   - `JENKINS_BACKUP_BUCKET_REGION={BUCKET_REGION} python backup.py`
 
-Available subcommands:
+Available commands:
   - `create`
   - `restore`
   - `list`
   - `delete`
   - `prune`
 
-Run `python backup.py {SUBCOMMAND} --help` for subcommand-specific options.
+Run `python backup.py {COMMAND} --help` for command-specific options.
 
 ## Running a daily backup on Jenkins
 
