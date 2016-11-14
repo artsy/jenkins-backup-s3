@@ -72,6 +72,7 @@ def cli(ctx, bucket, bucket_prefix, bucket_region):
 @click.option('--tar', type=click.STRING, default='/bin/tar', help='tar executable : defaults to "/bin/tar"')
 @click.option('--tar-opts', type=click.STRING, default='cvfz', help='tar options : defaults to "cvfz"')
 @click.option('--exclude-vcs/--include-vcs', default=True, help='Exclude VCS from the backup : defaults to true')
+@click.option('--ignore-fail/--dont-ignore-fail', default=True, help='Tar should ignore failed reads : defaults to true')
 @click.option('--exclude-archive/--include-archive', default=True, help='Exclude archive directory from the backup : defaults to true')
 @click.option('--exclude-target/--include-target', default=True, help='Exclude target directory from the backup : defaults to true')
 @click.option('--exclude-builds/--include-builds', default=True, help='Exclude job builds directories from the backup : defaults to true')
@@ -80,7 +81,7 @@ def cli(ctx, bucket, bucket_prefix, bucket_region):
 @click.option('--exclude-logs/--include-logs', default=True, help='Exclude logs from the backup : defaults to true')
 @click.option('--exclude', '-e', type=click.STRING, multiple=True, help='Additional direcoties to exclude from the backup')
 @click.option('--dry-run', type=click.BOOL, is_flag=True, help='Create tar archive as "tmp" but to do not upload to S3  : defaults to false')
-def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, exclude_target,
+def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, ignore_fail, exclude_archive, exclude_target,
             exclude_builds, exclude_workspace, exclude_maven, exclude_logs, exclude, dry_run):
   """Create a backup"""
   print("Backing up %s to %s/%s..." % (jenkins_home, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']))
@@ -89,6 +90,8 @@ def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, 
 
   if exclude_vcs:
     command.append('--exclude-vcs')
+  if ignore_fail:
+    command.append('--ignore-failed-read')
   if exclude_archive:
     command.append('--exclude=archive')
   if exclude_target:
