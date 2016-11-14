@@ -111,8 +111,8 @@ def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, ignore_fail, excl
 
   print("Executing %s" % ' '.join(command))
   retval = call(command)
-  if retval != 0:
-    print("Creating tar archive failed.")
+  if retval >= 2:
+    print("Creating tar archive failed with error code %s." % retval)
     os.remove(tmp)
     sys.exit(retval)
 
@@ -198,8 +198,8 @@ def restore(ctx, jenkins_home, tmp, tar, backup_id, tar_opts, dry_run):
 
     print("Executing %s" % ' '.join(command))
     retval = call(command)
-    if retval != 0:
-      print("Restoring tar archive failed.")
+    if retval >= 2:
+      print("Restoring tar archive failed with error code %s." % retval)
     os.remove(tmp)
     sys.exit(retval)
 
