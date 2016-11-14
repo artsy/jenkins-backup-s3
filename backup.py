@@ -1,7 +1,7 @@
 import os
 import datetime
 
-from subprocess import check_call, CalledProcessError
+from subprocess import call, CalledProcessError
 
 import click
 
@@ -107,7 +107,7 @@ def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, 
 
   print("Executing %s" % ' '.join(command))
   try:
-    check_call(command)
+    call(command)
   except CalledProcessError, err:
     print("Creating tar archive failed with error %s" % repr(e))
     os.remove(tmp)
@@ -198,7 +198,7 @@ def restore(ctx, jenkins_home, tmp, tar, backup_id, tar_opts, dry_run):
 
     print("Executing %s" % ' '.join(command))
     try:
-      check_call(command)
+      call(command)
     except CalledProcessError, err:
       print("Restoring tar archive failed with error %s" % repr(e))
     finally:
