@@ -1,7 +1,7 @@
 import os
 import datetime
 
-from subprocess import call, CalledProcessError
+from subprocess import call
 
 import click
 
@@ -106,12 +106,11 @@ def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, 
   command.append('.')
 
   print("Executing %s" % ' '.join(command))
-  try:
-    call(command)
-  except CalledProcessError, err:
-    print("Creating tar archive failed with error %s" % repr(e))
+  retval = call(command)
+  if retval != 0:
+    print("Creating tar archive failed.")
     os.remove(tmp)
-    return
+    sys.exit(retval)
 
   s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
   backup_id = str(datetime.datetime.now()).replace(' ', '_')
@@ -123,7 +122,6 @@ def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, exclude_archive, 
     os.remove(tmp)
     print("Created backup id %s" % backup_id)
 
-  print('Done.')
 
 @cli.command()
 @click.pass_context
@@ -151,7 +149,6 @@ def delete(ctx, backup_id):
   s3.delete(backup_id)
   print("Deleted %s" % backup_id)
 
-  print('Done.')
 
 @cli.command()
 @click.pass_context
@@ -168,7 +165,6 @@ def prune(ctx, keep, dry_run):
       s3.delete(backup_id)
       print("Deleted %s" % backup_id)
 
-  print('Done.')
 
 @cli.command()
 @click.pass_context
@@ -197,14 +193,12 @@ def restore(ctx, jenkins_home, tmp, tar, backup_id, tar_opts, dry_run):
     command = [tar, tar_opts, tmp, '-C', jenkins_home]
 
     print("Executing %s" % ' '.join(command))
-    try:
-      call(command)
-    except CalledProcessError, err:
-      print("Restoring tar archive failed with error %s" % repr(e))
-    finally:
-      os.remove(tmp)
+    retval = call(command)
+    if retval != 0:
+      print("Restoring tar archive failed.")
+    os.remove(tmp)
+    sys.exit(retval)
 
-  print('Done.')
 
 if __name__ == '__main__':
     cli(obj={})
