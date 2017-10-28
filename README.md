@@ -1,12 +1,13 @@
 # jenkins-backup-s3
 
-A collection of scripts to backup Jenkins configuration to S3, as well as manage and restore those backups
+A collection of scripts to backup Jenkins configuration to S3, as well as manage and restore those backups. By default
+runs silently (no output) with proper exit codes. Log Level option enables output.
 
 ## Setup
 
 ### Python
 
-- Install Python 2.7.x
+- Install Python 3.6.x+
 
 - Optionally: Install [virtualenv](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
 
@@ -18,16 +19,11 @@ A collection of scripts to backup Jenkins configuration to S3, as well as manage
 
 - Create an S3 bucket to store backups.
 
-- Create an IAM user.  The IAM user must have the `GetObject`, `CreateObject`, `DeleteObject` and `ListBucket` S3 permissions for that bucket.
-
-- [Configure boto](http://boto.cloudhackers.com/en/latest/boto_config_tut.html) with these IAM credentials.
-
-```
-export AWS_ACCESS_KEY_ID=foo
-export AWS_SECRET_ACCESS_KEY=bar
-```
+- Create an IAM role with STS:AssumeRole and a trust Service ec2.amazonaws.com.  The IAM role must have the `GetObject`, `CreateObject`, `DeleteObject` and `ListBucket` S3 permissions for that bucket.
 
 ## Usage
+
+Setup with cron for ideal usage.
 
 `python backup.py {OPTIONS} {COMMAND} {COMMAND_OPTIONS}`
 
@@ -63,3 +59,7 @@ Create a new item in Jenkins and configure a build of this repository.
 Set the shell / virtualenv builder (if you have it installed) to run `python backup.py create`.
 
 Set the build on a daily CRON schedule.
+
+## Credit
+
+Forked from: https://github.com/artsy/jenkins-backup-s3
