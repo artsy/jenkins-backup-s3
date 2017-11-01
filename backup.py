@@ -15,7 +15,7 @@ init()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-DEFAULT_REGION='us-west-2'
+DEFAULT_REGION='us-east-1'
 
 ch = logging.StreamHandler()
 
@@ -105,6 +105,26 @@ def create(ctx, jenkins_home, tmp, dry_run):
     logger.info(colored("Backing up %s to %s/%s" % (jenkins_home, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
 
     command = ['tar', 'cfz', tmp, '-C', jenkins_home]
+
+    if exclude_vcs:
+        command.append('--exclude-vcs')
+    if ignore_fail:
+        command.append('--ignore-failed-read')
+    if exclude_archive:
+        command.append('--exclude=archive')
+    if exclude_target:
+        command.append('--exclude=target')
+    if exclude_builds:
+        command.append('--exclude=jobs/*/builds/*')
+    if exclude_workspace:
+        command.append('--exclude=jobs/*/workspace/*')
+    if exclude_maven:
+        command.append('--exclude=.m2/repository')
+    if exclude_logs:
+        command.append('--exclude=*.log')
+    for e in exclude:
+        command.append("--exclude=%s" % e)
+
     command.append('.')
 
     logger.info(colored("Executing command \"%s\"" % ' '.join(command), 'blue'))
