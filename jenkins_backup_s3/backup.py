@@ -98,9 +98,21 @@ def cli(ctx, bucket, bucket_prefix, bucket_region, log_level):
 @cli.command()
 @click.pass_context
 @click.option('--jenkins-home', type=click.STRING, default='/var/lib/jenkins', help='Jenkins home directory : defaults to "/var/lib/jenkins"')
-@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz', help='Jenkins archive name : defaults to "/tmp/jenkins-backup.tar.gz"')
-@click.option('--dry-run', type=click.BOOL, is_flag=True, help='Create tar archive as "tmp" but do not upload it to S3 : defaults to false')
-def create(ctx, jenkins_home, tmp, dry_run):
+@click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz', help='Temporary tar archive file : defaults to "/tmp/jenkins-backup.tar.gz"')
+@click.option('--tar', type=click.STRING, default='/bin/tar', help='tar executable : defaults to "/bin/tar"')
+@click.option('--tar-opts', type=click.STRING, default='cvfz', help='tar options : defaults to "cvfz"')
+@click.option('--exclude-vcs/--include-vcs', default=True, help='Exclude VCS from the backup : defaults to true')
+@click.option('--ignore-fail/--dont-ignore-fail', default=True, help='Tar should ignore failed reads : defaults to true')
+@click.option('--exclude-archive/--include-archive', default=True, help='Exclude archive directory from the backup : defaults to true')
+@click.option('--exclude-target/--include-target', default=True, help='Exclude target directory from the backup : defaults to true')
+@click.option('--exclude-builds/--include-builds', default=True, help='Exclude job builds directories from the backup : defaults to true')
+@click.option('--exclude-workspace/--include-workspace', default=True, help='Exclude job workspace directories from the backup : defaults to true')
+@click.option('--exclude-maven/--include-maven', default=True, help='Exclude maven repository from the backup : defaults to true')
+@click.option('--exclude-logs/--include-logs', default=True, help='Exclude logs from the backup : defaults to true')
+@click.option('--exclude', '-e', type=click.STRING, multiple=True, help='Additional direcoties to exclude from the backup')
+@click.option('--dry-run', type=click.BOOL, is_flag=True, help='Create tar archive as "tmp" but to do not upload to S3  : defaults to false')
+def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, ignore_fail, exclude_archive, exclude_target,
+            exclude_builds, exclude_workspace, exclude_maven, exclude_logs, exclude, dry_run):
     """Create a backup"""
     logger.info(colored("Backing up %s to %s/%s" % (jenkins_home, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
 
