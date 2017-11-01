@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'backup-jenkins=backup:main'
+            'backup-jenkins=jenkins_backup_s3.backup:main'
         ]
     },
     install_requries=(
