@@ -2,15 +2,15 @@ from setuptools import setup, find_packages
 
 setup(
     name='jenkins-backup-s3',
-    version='0.1.1',
+    version='0.1.7',
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'backup-jenkins=backup:main'
+            'backup-jenkins=jenkins_backup_s3.backup:main'
         ]
     },
-    install_requries=(
-        'boto3==1.4.7'
+    install_requires=(
+        'boto3==1.4.7',
         'botocore==1.7.19',
         'click==6.7',
         'colorama==0.3.9',
@@ -19,6 +19,6 @@ setup(
         'python-dateutil==2.6.1',
         's3transfer==0.1.11',
         'six==1.11.0',
-        'termcolor==1.1.0',
+        'termcolor==1.1.0'
     )
 )
