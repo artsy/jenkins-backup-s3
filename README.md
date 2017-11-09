@@ -59,7 +59,3 @@ Create a new item in Jenkins and configure a build of this repository.
 Set the shell / virtualenv builder (if you have it installed) to run `python backup.py create`.
 
 Set the build on a daily CRON schedule.
-
-## Credit
-
-Forked from: https://github.com/artsy/jenkins-backup-s3
