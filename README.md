@@ -48,7 +48,3 @@ Create a new item in Jenkins and configure a build of this repository.
 Set the shell / virtualenv builder (if you have it installed) to run `backup-jenkins create`.
 
 Set the build on a daily CRON schedule.
-
-## Credits
-
-Forked from: https://github.com/mattouille/jenkins-backup-s3
