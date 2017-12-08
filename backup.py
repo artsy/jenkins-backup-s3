@@ -175,17 +175,38 @@ def list(ctx):
         logger.info(colored(backup, 'blue'))
 
 
+def _delete_command(backup_id, bucket, bucket_prefix, bucket_region, dry_run):
+    logger.info(colored("Deleting backup %s in %s/%s..." % (backup_id, bucket, bucket_prefix), 'blue'))
+
+    s3 = S3Backups(bucket, bucket_prefix, bucket_region)
+
+    if dry_run:
+        logger.info(colored("Would have deleted %s" % backup_id, 'blue'))
+    else:
+        s3.delete(backup_id)
+        logger.info(colored("Deleted %s" % backup_id, 'green'))
+
+
 @cli.command()
 @click.pass_context
 @click.argument('backup-id', required=True, type=click.STRING)
-def delete(ctx, backup_id):
+@click.option('--dry-run', type=click.BOOL, is_flag=True, help='List delete candidate, do not delete it')
+def delete(ctx, backup_id, dry_run):
     """Delete a backup by {backup-id}"""
-    logger.info(colored("Deleting backup %s in %s/%s..." % (backup_id, ctx.obj['BUCKET'],ctx.obj['BUCKET_PREFIX']), 'blue'))
+    _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'], dry_run)
+
+
+@cli.command()
+@click.pass_context
+@click.argument('keep', required=True, type=click.INT)
+@click.option('--dry-run', type=click.BOOL, is_flag=True, help='List delete candidates, do not delete them')
+def prune(ctx, keep, dry_run):
+    """Delete any backups older than the latest {keep} number of backups"""
+    logger.info(colored("Pruning backups in %s/%s..." % (ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
 
     s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
-    s3.delete(backup_id)
-
-    logger.info(colored("Deleted %s" % backup_id, 'blue'))
+    for backup_id in s3.backups()[::-keep]:
+        _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'], dry_run)
 
 
 @cli.command()
