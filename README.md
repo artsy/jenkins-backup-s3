@@ -5,7 +5,7 @@ runs silently (no output) with proper exit codes. Log Level option enables outpu
 
 ## Setup
 
-pip install git+git://github.com/acannon828/jenkins-backup-s3.git@v0.1.3
+pip install git+git://github.com/artsy/jenkins-backup-s3.git
 
 ### Configure S3 and IAM
 
