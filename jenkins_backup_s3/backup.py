@@ -245,5 +245,9 @@ def restore(ctx, backup_id, jenkins_home, tmp, tar, tar_opts, dry_run):
         sys.exit(retval)
 
 
-if __name__ == '__main__':
+def main():
     cli(obj={})
+
+
+if __name__ == '__main__':
+    main()
