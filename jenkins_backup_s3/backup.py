@@ -38,7 +38,7 @@ class S3Backups(object):
         for obj in bucket.objects.all():
             objects.append(obj.key)
         logger.info(colored("Successfully fetched objects from %s" % self.__bucket, 'green'))
-        return objects
+        return sorted(objects, reverse=True)
 
     def backups(self):
         backups = []
@@ -205,7 +205,7 @@ def prune(ctx, keep, dry_run):
     logger.info(colored("Pruning backups in %s/%s..." % (ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
 
     s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
-    for backup_id in s3.backups()[::keep]:
+    for backup_id in s3.backups()[keep:]:
         _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'], dry_run)
 
 
