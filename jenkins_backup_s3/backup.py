@@ -101,6 +101,7 @@ def cli(ctx, bucket, bucket_prefix, bucket_region, log_level):
 @click.option('--tmp', type=click.STRING, default='/tmp/jenkins-backup.tar.gz', help='Jenkins archive name : defaults to "/tmp/jenkins-backup.tar.gz"')
 @click.option('--tar', type=click.STRING, default='/bin/tar', help='tar executable : defaults to "/bin/tar"')
 @click.option('--tar-opts', type=click.STRING, default='cvfz', help='tar options : defaults to "cvfz"')
+@click.option('--exclude-jenkins-war/--include-jenkins-war', default=True, help='Exclude jenkins.war from the backup : defaults to true')
 @click.option('--exclude-vcs/--include-vcs', default=True, help='Exclude VCS from the backup : defaults to true')
 @click.option('--ignore-fail/--dont-ignore-fail', default=True, help='Tar should ignore failed reads : defaults to true')
 @click.option('--exclude-archive/--include-archive', default=True, help='Exclude archive directory from the backup : defaults to true')
@@ -111,13 +112,15 @@ def cli(ctx, bucket, bucket_prefix, bucket_region, log_level):
 @click.option('--exclude-logs/--include-logs', default=True, help='Exclude logs from the backup : defaults to true')
 @click.option('--exclude', '-e', type=click.STRING, multiple=True, help='Additional directories to exclude from the backup')
 @click.option('--dry-run', type=click.BOOL, is_flag=True, help='Create tar archive as "tmp" but do not upload it to S3 : defaults to false')
-def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_vcs, ignore_fail, exclude_archive, exclude_target,
+def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_jenkins_war, exclude_vcs, ignore_fail, exclude_archive, exclude_target,
             exclude_builds, exclude_workspace, exclude_maven, exclude_logs, exclude, dry_run):
     """Create a backup"""
     logger.info(colored("Backing up %s to %s/%s" % (jenkins_home, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
 
     command = [tar, tar_opts, tmp, '-C', jenkins_home]
 
+    if exclude_jenkins_war:
+        command.append('--exclude=jenkins.war')
     if exclude_vcs:
         command.append('--exclude-vcs')
     if ignore_fail:
