@@ -11,7 +11,7 @@ runs silently (no output) with proper exit codes. Log Level option enables outpu
 
 - Create an S3 bucket to store backups.
 
-- Create an IAM role with STS:AssumeRole and a trust Service ec2.amazonaws.com.  The IAM role must have the `GetObject`, `CreateObject`, `DeleteObject` and `ListBucket` S3 permissions for that bucket.
+- Create an IAM role with STS:AssumeRole and a trust Service ec2.amazonaws.com.  The IAM role must have the `GetObject`, `CreateObject`, `DeleteObject`, `PutObject` and `ListBucket` S3 permissions for that bucket.
 
 ## Usage
 
