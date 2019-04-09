@@ -20,15 +20,10 @@ setup(
         ]
     },
     install_requires=(
-        'boto3==1.4.7',
-        'botocore==1.7.19',
-        'click==6.7',
-        'colorama==0.3.9',
-        'docutils==0.14',
-        'jmespath==0.9.3',
-        'python-dateutil==2.6.1',
-        's3transfer==0.1.11',
-        'six==1.11.0',
-        'termcolor==1.1.0'
+        'boto3~=1.9',
+        'click~=7.0',
+        'colorama~=0.4',
+        'python-dateutil~=2.8',
+        'termcolor~=1.1'
     )
 )
