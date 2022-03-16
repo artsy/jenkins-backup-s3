@@ -23,8 +23,10 @@ ch = logging.StreamHandler()
 class S3Backups(object):
     KEY_SUFFIX = '__jenkins-backup.tar.gz'
 
-    def __init__(self, bucket, prefix, region):
-        self.s3 = boto3.resource('s3')
+    def __init__(self, bucket, prefix, region, endpoint):
+        if not endpoint:
+            endpoint = None
+        self.s3 = boto3.resource('s3', endpoint_url=endpoint)
         self.__bucket = bucket
         self.__bucket_prefix = prefix
         self.__bucket_region = region
@@ -82,12 +84,14 @@ class S3Backups(object):
 @click.option('--bucket', required=True, type=click.STRING, help='S3 bucket to store backups in')
 @click.option('--bucket-prefix', type=click.STRING, default='jenkins-backups', help='S3 bucket prefix : defaults to "jenkins-backups"')
 @click.option('--bucket-region', type=click.STRING, default=DEFAULT_REGION, help='S3 bucket region : defaults to "%s"' % DEFAULT_REGION)
+@click.option('--endpoint', type=click.STRING, help='S3 endpoint')
 @click.option('--log-level', type=click.STRING, default='INFO', help='Display colorful status messages')
-def cli(ctx, bucket, bucket_prefix, bucket_region, log_level):
+def cli(ctx, bucket, bucket_prefix, bucket_region, endpoint, log_level):
     """Manage Jenkins backups to S3"""
     ctx.obj['BUCKET'] = bucket
     ctx.obj['BUCKET_PREFIX'] = bucket_prefix
     ctx.obj['BUCKET_REGION'] = bucket_region
+    ctx.obj['ENDPOINT'] = endpoint
 
     ch.setLevel(log_level)
     formatter = logging.Formatter('[%(levelname)s]: %(message)s')
@@ -153,7 +157,8 @@ def create(ctx, jenkins_home, tmp, tar, tar_opts, exclude_jenkins_war, exclude_v
 
     logger.debug(colored("Successfully created tar archive", 'white'))
 
-    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
+    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'],
+                   ctx.obj['ENDPOINT'])
     backup_id = str(datetime.datetime.now()).replace(' ', '_')
 
     if dry_run:
@@ -172,16 +177,17 @@ def list(ctx):
     logger.info(colored("All backups for %s/%s..." % (ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
     logger.info(colored("------------------------", 'blue'))
 
-    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
+    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'],
+                   ctx.obj['ENDPOINT'])
 
     for backup in s3.backups():
         logger.info(colored(backup, 'blue'))
 
 
-def _delete_command(backup_id, bucket, bucket_prefix, bucket_region, dry_run):
+def _delete_command(backup_id, bucket, bucket_prefix, bucket_region, endpoint, dry_run):
     logger.info(colored("Deleting backup %s in %s/%s..." % (backup_id, bucket, bucket_prefix), 'blue'))
 
-    s3 = S3Backups(bucket, bucket_prefix, bucket_region)
+    s3 = S3Backups(bucket, bucket_prefix, bucket_region, endpoint)
 
     if dry_run:
         logger.info(colored("Would have deleted %s" % backup_id, 'blue'))
@@ -196,7 +202,8 @@ def _delete_command(backup_id, bucket, bucket_prefix, bucket_region, dry_run):
 @click.option('--dry-run', type=click.BOOL, is_flag=True, help='List delete candidate, do not delete it')
 def delete(ctx, backup_id, dry_run):
     """Delete a backup by {backup-id}"""
-    _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'], dry_run)
+    _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'],
+                    ctx.obj['ENDPOINT'], dry_run)
 
 
 @cli.command()
@@ -207,9 +214,11 @@ def prune(ctx, keep, dry_run):
     """Delete any backups older than the latest {keep} number of backups"""
     logger.info(colored("Pruning backups in %s/%s..." % (ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX']), 'blue'))
 
-    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
+    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'],
+                   ctx.obj['ENDPOINT'])
     for backup_id in s3.backups()[keep:]:
-        _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'], dry_run)
+        _delete_command(backup_id, ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'],
+                        ctx.obj['ENDPOINT'], dry_run)
 
 
 @cli.command()
@@ -223,7 +232,8 @@ def prune(ctx, keep, dry_run):
 def restore(ctx, backup_id, jenkins_home, tmp, tar, tar_opts, dry_run):
     """Restore a backup by {backup-id} or 'latest'"""
     logger.info(colored("Attempting to restore backup by criteria '%s'..." % backup_id, 'blue'))
-    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'])
+    s3 = S3Backups(ctx.obj['BUCKET'], ctx.obj['BUCKET_PREFIX'], ctx.obj['BUCKET_REGION'],
+                   ctx.obj['ENDPOINT'])
     if backup_id == 'latest':
         backup_id = s3.latest()
         if backup_id is None:
